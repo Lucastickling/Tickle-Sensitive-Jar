@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tickle Jars</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 900px; width: 100%; }
+    h1 { text-align: center; margin-bottom: 0.5rem; color: #e94560; font-size: 1.8rem; }
+    .subtitle { text-align: center; color: #aaa; margin-bottom: 2rem; font-size: 0.95rem; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* --- Start screen --- */
+    .start-card {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .start-card label { display: block; margin-bottom: 0.4rem; font-weight: 600; }
+    .start-card input[type="text"] {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #0f3460;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .color-options {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .color-swatch {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: border 0.2s, transform 0.15s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: #fff; transform: scale(1.15); }
+
+    .btn {
+      display: block; width: 100%; padding: 1rem;
+      border: none; border-radius: 8px;
+      font-size: 1.1rem; cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .btn:hover { transform: scale(1.02); }
+    .btn-primary { background: #e94560; color: white; }
+    .btn-secondary { background: #0f3460; color: #eee; margin-top: 0.8rem; }
+
+    /* --- Quiz screen --- */
+    .quiz-card {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+    }
+    .zone-name { font-size: 1.4rem; margin-bottom: 1.5rem; color: #e94560; }
+    .scale { display: flex; flex-direction: column; gap: 0.5rem; }
+    .scale-btn {
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #0f3460;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, border 0.2s;
+    }
+    .scale-btn:hover { background: #0f3460; }
+    .scale-btn.selected { background: #e94560; border-color: #e94560; }
+    .progress {
+      width: 100%; height: 5px;
+      background: #16213e;
+      border-radius: 3px;
+      margin-bottom: 1.5rem;
+    }
+    .progress-bar {
+      height: 100%; background: #e94560;
+      border-radius: 3px; transition: width 0.3s;
+    }
+    .quiz-nav { display: flex; justify-content: space-between; margin-top: 1.5rem; }
+    .btn-nav {
+      background: #0f3460; color: #eee;
+      width: auto; padding: 0.6rem 1.4rem; font-size: 0.9rem;
+    }
+
+    /* --- Results screen --- */
+    .capture-area {
+      background: #1a1a2e;
+      padding: 2rem;
+      border-radius: 16px;
+    }
+    .results-header { text-align: center; margin-bottom: 2rem; }
+    .results-header h2 { color: #e94560; }
+    .results-header p { color: #aaa; margin-top: 0.3rem; }
+    .jars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 1.5rem;
+    }
+    .jar-wrapper { text-align: center; }
+    .jar-label {
+      font-size: 0.75rem;
+      color: #aaa;
+      margin-top: 0.5rem;
+      line-height: 1.2;
+    }
+
+    /* --- Jar CSS --- */
+    .jar {
+      position: relative;
+      width: 80px;
+      height: 110px;
+      margin: 0 auto;
+    }
+    .jar-body {
+      position: absolute;
+      bottom: 0;
+      left: 5px;
+      width: 70px;
+      height: 90px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.03);
+    }
+    .jar-lid {
+      position: absolute;
+      top: 12px;
+      left: 0;
+      width: 80px;
+      height: 14px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    .jar-neck {
+      position: absolute;
+      top: 0;
+      left: 15px;
+      width: 50px;
+      height: 14px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+    }
+    .jar-liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      border-radius: 0 0 9px 9px;
+    }
+    .jar-overflow {
+      position: absolute;
+      top: -6px;
+      left: -3px;
+      width: calc(100% + 6px);
+      height: 12px;
+      border-radius: 50%;
+      opacity: 0.7;
+    }
+    .jar-score {
+      font-size: 0.7rem;
+      color: #888;
+      margin-top: 0.2rem;
+    }
+    .actions { margin-top: 2rem; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .capture-note { text-align: center; color: #666; font-size: 0.8rem; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- START -->
+  <div id="screen-start" class="screen active">
+    <h1>🫙 Tickle Jars</h1>
+    <p class="subtitle">Quelles zones de ton corps sont chatouilleuses et à quel point ?</p>
+    <div class="start-card">
+      <label for="pseudo">Ton pseudo</label>
+      <input type="text" id="pseudo" placeholder="ex : ChatouilleMax" maxlength="20">
+      <label>Couleur du liquide</label>
+      <div class="color-options" id="color-options"></div>
+      <button class="btn btn-primary" onclick="startQuiz()">Commencer</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="screen-quiz" class="screen">
+    <h1>🫙 Tickle Jars</h1>
+    <p class="subtitle" id="quiz-subtitle"></p>
+    <div class="quiz-card">
+      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+      <p class="zone-name" id="zone-name"></p>
+      <div class="scale" id="scale"></div>
+      <div class="quiz-nav">
+        <button class="btn btn-nav" onclick="prevQuestion()">← Retour</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="screen-results" class="screen">
+    <div class="capture-area" id="capture-area">
+      <div class="results-header">
+        <h2>🫙 Tickle Jars de <span id="result-pseudo"></span></h2>
+        <p>Carte de sensibilité aux chatouilles — <span id="result-date"></span></p>
+      </div>
+      <div class="jars-grid" id="jars-grid"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveAsImage()">💾 Enregistrer en image</button>
+      <button class="btn btn-secondary" id="btn-share" onclick="shareImage()" style="display:none">📤 Partager</button>
+      <button class="btn btn-secondary" onclick="location.reload()">Recommencer</button>
+    </div>
+    <p class="capture-note">L'image est téléchargée en PNG sur votre appareil.</p>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+
+const zones = [
+  "Cou / oreilles",
+  "Bras",
+  "Aisselles",
+  "Seins / tétons",
+  "Ventre",
+  "Côtes",
+  "Hanches",
+  "Dos",
+  "Entre-jambes",
+  "Fesses",
+  "Cuisses",
+  "Intérieur des cuisses",
+  "Genoux",
+  "Mollets",
+  "Pieds"
+];
+
+const scaleLabels = [
+  "Pas du tout",
+  "Un peu",
+  "Légèrement",
+  "Chatouilleux",
+  "Intense",
+  "Zone ultra chatouilleuse"
+];
+
+const colorOptions = [
+  "#e94560", "#ff6b6b", "#ffa502", "#f9ca24",
+  "#6ab04c", "#22a6b3", "#7ed6df", "#4834d4",
+  "#be2edd", "#fd79a8", "#ffffff", "#a29bfe"
+];
+
+// ============================================================
+// ÉTAT
+// ============================================================
+
+let currentQuestion = 0;
+let userAnswers = new Array(zones.length).fill(null);
+let selectedColor = colorOptions[0];
+let pseudo = "";
+
+// ============================================================
+// INIT
+// ============================================================
+
+function initColors() {
+  const container = document.getElementById("color-options");
+  colorOptions.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "color-swatch" + (c === selectedColor ? " selected" : "");
+    div.style.background = c;
+    div.onclick = () => {
+      document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("selected"));
+      div.classList.add("selected");
+      selectedColor = c;
+    };
+    container.appendChild(div);
+  });
+}
+initColors();
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function startQuiz() {
+  pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
+  currentQuestion = 0;
+  showScreen("screen-quiz");
+  renderQuestion();
+}
+
+function renderQuestion() {
+  document.getElementById("quiz-subtitle").textContent =
+    `Zone ${currentQuestion + 1} / ${zones.length}`;
+  document.getElementById("progress-bar").style.width =
+    ((currentQuestion + 1) / zones.length * 100) + "%";
+  document.getElementById("zone-name").textContent = zones[currentQuestion];
+
+  const container = document.getElementById("scale");
+  container.innerHTML = "";
+  scaleLabels.forEach((label, i) => {
+    const btn = document.createElement("button");
+    btn.className = "scale-btn" + (userAnswers[currentQuestion] === i ? " selected" : "");
+    btn.textContent = `${i} — ${label}`;
+    btn.onclick = () => selectAnswer(i);
+    container.appendChild(btn);
+  });
+}
+
+function selectAnswer(index) {
+  userAnswers[currentQuestion] = index;
+  if (currentQuestion < zones.length - 1) {
+    currentQuestion++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function prevQuestion() {
+  if (currentQuestion > 0) {
+    currentQuestion--;
+    renderQuestion();
+  }
+}
+
+// ============================================================
+// RÉSULTATS
+// ============================================================
+
+function showResults() {
+  document.getElementById("result-pseudo").textContent = pseudo;
+  document.getElementById("result-date").textContent =
+    new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+  const grid = document.getElementById("jars-grid");
+  grid.innerHTML = "";
+
+  zones.forEach((zone, i) => {
+    const score = userAnswers[i] !== null ? userAnswers[i] : 0;
+    const fillPercent = (score / 5) * 100;
+    const isOverflow = score === 5;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "jar-wrapper";
+
+    const jar = document.createElement("div");
+    jar.className = "jar";
+
+    const neck = document.createElement("div");
+    neck.className = "jar-neck";
+
+    const lid = document.createElement("div");
+    lid.className = "jar-lid";
+
+    const body = document.createElement("div");
+    body.className = "jar-body";
+
+    const liquid = document.createElement("div");
+    liquid.className = "jar-liquid";
+    liquid.style.height = fillPercent + "%";
+    liquid.style.background = selectedColor;
+
+    if (isOverflow) {
+      const overflow = document.createElement("div");
+      overflow.className = "jar-overflow";
+      overflow.style.background = selectedColor;
+      liquid.appendChild(overflow);
+    }
+
+    body.appendChild(liquid);
+    jar.appendChild(neck);
+    jar.appendChild(lid);
+    jar.appendChild(body);
+
+    const label = document.createElement("div");
+    label.className = "jar-label";
+    label.textContent = zone;
+
+    const scoreEl = document.createElement("div");
+    scoreEl.className = "jar-score";
+    scoreEl.textContent = score + "/5";
+
+    wrapper.appendChild(jar);
+    wrapper.appendChild(label);
+    wrapper.appendChild(scoreEl);
+    grid.appendChild(wrapper);
+  });
+
+  showScreen("screen-results");
+
+  // Affiche le bouton partager si le navigateur le supporte
+  const shareBtn = document.getElementById("btn-share");
+  if (navigator.canShare) {
+    shareBtn.style.display = "block";
+  }
+}
+
+// ============================================================
+// EXPORT IMAGE
+// ============================================================
+
+function generateCanvas() {
+  const area = document.getElementById("capture-area");
+  return html2canvas(area, {
+    backgroundColor: "#1a1a2e",
+    scale: 2,
+    logging: false
+  });
+}
+
+function saveAsImage() {
+  generateCanvas().then(canvas => {
+    const link = document.createElement("a");
+    const safePseudo = pseudo.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    link.download = `tickle-jars-${safePseudo}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }).catch(err => {
+    alert("Impossible de générer l'image. Essayez avec Chrome ou Firefox.");
+    console.error(err);
+  });
+}
+
+// ============================================================
+// PARTAGE
+// ============================================================
+
+function shareImage() {
+  generateCanvas().then(canvas => {
+    canvas.toBlob(blob => {
+      const file = new File([blob], "tickle-jars.png", { type: "image/png" });
+      const shareData = {
+        title: "Tickle Jars",
+        text: `Ma carte de sensibilité aux chatouilles 🫙`,
+        files: [file]
+      };
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share(shareData).catch(err => {
+          if (err.name !== "AbortError") {
+            console.error("Erreur de partage:", err);
+          }
+        });
+      } else {
+        // Fallback : télécharge l'image
+        const link = document.createElement("a");
+        link.download = "tickle-jars.png";
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+    }, "image/png");
+  }).catch(err => {
+    alert("Impossible de générer l'image.");
+    console.error(err);
+  });
+}
+</script>
+</body>
+</html>
